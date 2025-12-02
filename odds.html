@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparativo de Odds - Painel Completo</title>
+
+<!-- Bibliotecas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background-color: #f4f6fa;
+    margin: 0;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 1150px;
+    margin: auto;
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  header {
+    background: linear-gradient(90deg, #004aad, #0072ff);
+    color: white;
+    padding: 16px 24px;
+    text-align: center;
+    font-size: 1.4em;
+    font-weight: bold;
+  }
+
+  .info {
+    display: flex;
+    justify-content: space-around;
+    background-color: #eaf1fb;
+    padding: 12px;
+    border-bottom: 2px solid #d4e1fa;
+    flex-wrap: wrap;
+  }
+
+  .info input {
+    border: none;
+    background: none;
+    border-bottom: 1px solid #aaa;
+    padding: 4px;
+    font-size: 1em;
+    text-align: center;
+    width: 200px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+  }
+
+  th {
+    background-color: #004aad;
+    color: white;
+    padding: 10px;
+    font-weight: 600;
+  }
+
+  td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 8px;
+  }
+
+  input.odds {
+    width: 80px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 4px;
+  }
+
+  .diff1 { background-color: #fff3cd; }
+  .diff2 { background-color: #e8f4ff; }
+  .profit { background-color: #d7fcd7; }
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px;
+    background-color: #f9f9f9;
+    border-top: 2px solid #eee;
+    flex-wrap: wrap;
+  }
+
+  button {
+    background: linear-gradient(90deg, #0072ff, #00c6ff);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 0.95em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button.reset {
+    background: linear-gradient(90deg, #ff4d4d, #ff1a1a);
+  }
+
+  #chartContainer {
+    padding: 20px;
+    background: #f9fbff;
+    border-top: 2px solid #e3e8f0;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="container" id="exportArea">
+  <header>Comparativo de Odds</header>
+
+  <div class="info">
+    <div>Evento: <input type="text" id="evento" value="Flamengo x São Paulo"></div>
+    <div>Competição: <input type="text" id="competicao" value="Brasileirão Série A"></div>
+    <div>Tempo: <input type="text" id="tempo" value="15 Minutos de Partida"></div>
+  </div>
+
+  <table id="oddsTable">
+    <thead>
+      <tr>
+        <th>Mercado</th>
+        <th>Betsul</th>
+        <th>Bet365</th>
+        <th>Betano</th>
+        <th>Dif. Betsul x Bet365</th>
+        <th>Dif. Betsul x Betano</th>
+        <th>Rentabilidade Betsul</th>
+        <th>Rentabilidade Bet365</th>
+        <th>Rentabilidade Betano</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr><td colspan="9" style="background:#e7f0ff;font-weight:600;">Vencedor do Jogo</td></tr>
+
+      <tr>
+        <td>1</td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td class="diff1">0</td>
+        <td class="diff2">0</td>
+        <td class="profit-betsul">0%</td>
+        <td class="profit-bet365">0%</td>
+        <td class="profit-betano">0%</td>
+      </tr>
+
+      <tr>
+        <td>X</td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td class="diff1">0</td>
+        <td class="diff2">0</td>
+        <td class="profit-betsul">0%</td>
+        <td class="profit-bet365">0%</td>
+        <td class="profit-betano">0%</td>
+      </tr>
+
+      <tr>
+        <td>2</td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td><input class="odds"></td>
+        <td class="diff1">0</td>
+        <td class="diff2">0</td>
+        <td class="profit-betsul">0%</td>
+        <td class="profit-bet365">0%</td>
+        <td class="profit-betano">0%</td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  <div id="chartContainer">
+    <canvas id="oddsChart"></canvas>
+  </div>
+</div>
+
+<div class="actions">
+  <button onclick="salvarDados()">💾 Salvar</button>
+  <button onclick="carregarDados()">📂 Carregar</button>
+  <button onclick="gerarPDF()">📊 Exportar PDF</button>
+  <button class="reset" onclick="resetar()">🧹 Limpar</button>
+</div>
+
+<footer>Desenvolvido para análise comparativa de odds ⚽</footer>
+
+<script>
+  const inputs = document.querySelectorAll(".odds, .info input");
+  let chart;
+
+  function calcRent(o1, ox, o2) {
+    if (!o1 || !ox || !o2) return "0%";
+    const total = (100/o1) + (100/ox) + (100/o2);
+    return total.toFixed(2) + "%";
+  }
+
+  function atualizar() {
+    const rows = document.querySelectorAll("#oddsTable tbody tr");
+
+    const linha1 = rows[1].querySelectorAll("input");
+    const linhaX = rows[2].querySelectorAll("input");
+    const linha2 = rows[3].querySelectorAll("input");
+
+    const v = {
+      betsul: [
+        parseFloat(linha1[0].value), parseFloat(linhaX[0].value), parseFloat(linha2[0].value)
+      ],
+      bet365: [
+        parseFloat(linha1[1].value), parseFloat(linhaX[1].value), parseFloat(linha2[1].value)
+      ],
+      betano: [
+        parseFloat(linha1[2].value), parseFloat(linhaX[2].value), parseFloat(linha2[2].value)
+      ]
+    };
+
+    document.querySelectorAll(".profit-betsul").forEach(e => e.textContent = calcRent(...v.betsul));
+    document.querySelectorAll(".profit-bet365").forEach(e => e.textContent = calcRent(...v.bet365));
+    document.querySelectorAll(".profit-betano").forEach(e => e.textContent = calcRent(...v.betano));
+
+    // Diferenças
+    rows.forEach(row => {
+      const c = row.querySelectorAll("input.odds");
+      if (c.length === 3) {
+        let b1 = parseFloat(c[0].value) || 0;
+        let b2 = parseFloat(c[1].value) || 0;
+        let b3 = parseFloat(c[2].value) || 0;
+
+        row.querySelector(".diff1").textContent = (b1 - b2).toFixed(2);
+        row.querySelector(".diff2").textContent = (b1 - b3).toFixed(2);
+      }
+    });
+
+    atualizarGrafico(
+      ["1", "X", "2"],
+      v.betsul,
+      v.bet365,
+      v.betano
+    );
+  }
+
+  function atualizarGrafico(labels, betsul, bet365, betano) {
+    const ctx = document.getElementById('oddsChart').getContext('2d');
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Betsul', data: betsul, backgroundColor: '#0072ff' },
+          { label: 'Bet365', data: bet365, backgroundColor: '#00b050' },
+          { label: 'Betano', data: betano, backgroundColor: '#ff9900' }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } },
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  function salvarDados() {
+    const dados = {
+      evento: evento.value,
+      competicao: competicao.value,
+      tempo: tempo.value,
+      odds: Array.from(document.querySelectorAll(".odds")).map(o => o.value)
+    };
+    localStorage.setItem("comparativoOdds", JSON.stringify(dados));
+    alert("✅ Dados salvos!");
+  }
+
+  function carregarDados() {
+    const dados = JSON.parse(localStorage.getItem("comparativoOdds"));
+    if (!dados) return alert("Nenhum dado salvo!");
+    
+    evento.value = dados.evento;
+    competicao.value = dados.competicao;
+    tempo.value = dados.tempo;
+
+    document.querySelectorAll(".odds").forEach((o, i) => o.value = dados.odds[i] || "");
+    atualizar();
+
+    alert("📂 Dados carregados!");
+  }
+
+  async function gerarPDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const area = document.getElementById("exportArea");
+
+    const canvas = await html2canvas(area, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
+    pdf.save(`Comparativo_Odds_${evento.value.replace(/\s+/g, "_")}.pdf`);
+  }
+
+  function resetar() {
+    if (!confirm("Tem certeza que deseja limpar tudo?")) return;
+
+    document.querySelectorAll(".odds").forEach(o => o.value = "");
+    localStorage.removeItem("comparativoOdds");
+    atualizar();
+  }
+
+  inputs.forEach(i => i.addEventListener("input", atualizar));
+</script>
+
+</body>
+</html>
