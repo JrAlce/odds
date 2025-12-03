@@ -73,6 +73,10 @@
     padding: 8px;
   }
 
+  tr:hover {
+    background-color: #f7faff;
+  }
+
   input.odds {
     width: 80px;
     text-align: center;
@@ -81,8 +85,7 @@
     padding: 4px;
   }
 
-  .diff1 { background-color: #fff3cd; }
-  .diff2 { background-color: #e8f4ff; }
+  .difference { background-color: #ffe8cc; }
   .profit { background-color: #d7fcd7; }
 
   .actions {
@@ -107,6 +110,11 @@
     transition: 0.3s;
   }
 
+  button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(0,114,255,0.3);
+  }
+
   button.reset {
     background: linear-gradient(90deg, #ff4d4d, #ff1a1a);
   }
@@ -117,6 +125,18 @@
     border-top: 2px solid #e3e8f0;
   }
 
+  footer {
+    background-color: #004aad;
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-size: 0.9em;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: 400px !important;
+  }
 </style>
 </head>
 <body>
@@ -137,53 +157,25 @@
         <th>Betsul</th>
         <th>Bet365</th>
         <th>Betano</th>
-        <th>Dif. Betsul x Bet365</th>
-        <th>Dif. Betsul x Betano</th>
-        <th>Rentabilidade Betsul</th>
-        <th>Rentabilidade Bet365</th>
-        <th>Rentabilidade Betano</th>
+        <th>Diferença</th>
+        <th>Rentabilidade</th>
       </tr>
     </thead>
-
     <tbody>
-      <tr><td colspan="9" style="background:#e7f0ff;font-weight:600;">Vencedor do Jogo</td></tr>
+      <tr><td colspan="6" style="background:#e7f0ff;font-weight:600;">Vencedor do Jogo</td></tr>
+      <tr><td>1</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
+      <tr><td>X</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
+      <tr><td>2</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
 
-      <tr>
-        <td>1</td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td class="diff1">0</td>
-        <td class="diff2">0</td>
-        <td class="profit-betsul">0%</td>
-        <td class="profit-bet365">0%</td>
-        <td class="profit-betano">0%</td>
-      </tr>
+      <tr><td colspan="6" style="background:#fff5e5;font-weight:600;">Total de Gols (+)</td></tr>
+      <tr><td>Mais de 2.5</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
 
-      <tr>
-        <td>X</td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td class="diff1">0</td>
-        <td class="diff2">0</td>
-        <td class="profit-betsul">0%</td>
-        <td class="profit-bet365">0%</td>
-        <td class="profit-betano">0%</td>
-      </tr>
+      <tr><td colspan="6" style="background:#e9f7e9;font-weight:600;">Total de Gols (-)</td></tr>
+      <tr><td>Menos de 2.5</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
 
-      <tr>
-        <td>2</td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td><input class="odds"></td>
-        <td class="diff1">0</td>
-        <td class="diff2">0</td>
-        <td class="profit-betsul">0%</td>
-        <td class="profit-bet365">0%</td>
-        <td class="profit-betano">0%</td>
-      </tr>
-
+      <tr><td colspan="6" style="background:#f0ecff;font-weight:600;">Ambas Marcam</td></tr>
+      <tr><td>Sim</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
+      <tr><td>Não</td><td><input class="odds"></td><td><input class="odds"></td><td><input class="odds"></td><td class="difference">0</td><td class="profit">0%</td></tr>
     </tbody>
   </table>
 
@@ -205,60 +197,38 @@
   const inputs = document.querySelectorAll(".odds, .info input");
   let chart;
 
-  function calcRent(o1, ox, o2) {
-    if (!o1 || !ox || !o2) return "0%";
-    const total = (100/o1) + (100/ox) + (100/o2);
-    return total.toFixed(2) + "%";
-  }
-
   function atualizar() {
-    const rows = document.querySelectorAll("#oddsTable tbody tr");
+    const linhas = document.querySelectorAll("#oddsTable tbody tr");
+    const mercados = [];
+    const betsul = [], bet365 = [], betano = [];
 
-    const linha1 = rows[1].querySelectorAll("input");
-    const linhaX = rows[2].querySelectorAll("input");
-    const linha2 = rows[3].querySelectorAll("input");
+    linhas.forEach(linha => {
+      const cels = linha.querySelectorAll("td input.odds");
+      if (cels.length === 3) {
+        const mercado = linha.children[0].textContent.trim();
+        const [b1, b2, b3] = Array.from(cels).map(c => parseFloat(c.value) || 0);
+        const diffCell = linha.querySelector(".difference");
+        const profitCell = linha.querySelector(".profit");
+        const max = Math.max(b1, b2, b3);
+        const min = Math.min(b1 || Infinity, b2 || Infinity, b3 || Infinity);
+        const diff = (max - min).toFixed(2);
+        const rent = min > 0 ? (((max - min) / min) * 100).toFixed(1) + "%" : "0%";
 
-    const v = {
-      betsul: [
-        parseFloat(linha1[0].value), parseFloat(linhaX[0].value), parseFloat(linha2[0].value)
-      ],
-      bet365: [
-        parseFloat(linha1[1].value), parseFloat(linhaX[1].value), parseFloat(linha2[1].value)
-      ],
-      betano: [
-        parseFloat(linha1[2].value), parseFloat(linhaX[2].value), parseFloat(linha2[2].value)
-      ]
-    };
+        diffCell.textContent = diff;
+        profitCell.textContent = rent;
 
-    document.querySelectorAll(".profit-betsul").forEach(e => e.textContent = calcRent(...v.betsul));
-    document.querySelectorAll(".profit-bet365").forEach(e => e.textContent = calcRent(...v.bet365));
-    document.querySelectorAll(".profit-betano").forEach(e => e.textContent = calcRent(...v.betano));
-
-    // Diferenças
-    rows.forEach(row => {
-      const c = row.querySelectorAll("input.odds");
-      if (c.length === 3) {
-        let b1 = parseFloat(c[0].value) || 0;
-        let b2 = parseFloat(c[1].value) || 0;
-        let b3 = parseFloat(c[2].value) || 0;
-
-        row.querySelector(".diff1").textContent = (b1 - b2).toFixed(2);
-        row.querySelector(".diff2").textContent = (b1 - b3).toFixed(2);
+        mercados.push(mercado);
+        betsul.push(b1);
+        bet365.push(b2);
+        betano.push(b3);
       }
     });
-
-    atualizarGrafico(
-      ["1", "X", "2"],
-      v.betsul,
-      v.bet365,
-      v.betano
-    );
+    atualizarGrafico(mercados, betsul, bet365, betano);
   }
 
   function atualizarGrafico(labels, betsul, bet365, betano) {
     const ctx = document.getElementById('oddsChart').getContext('2d');
     if (chart) chart.destroy();
-
     chart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -271,9 +241,10 @@
       },
       options: {
         responsive: true,
-        scales: { y: { beginAtZero: true } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Odds' } } },
         plugins: {
-          legend: { position: 'bottom' }
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Comparativo Visual das Odds por Mercado' }
         }
       }
     });
@@ -293,14 +264,11 @@
   function carregarDados() {
     const dados = JSON.parse(localStorage.getItem("comparativoOdds"));
     if (!dados) return alert("Nenhum dado salvo!");
-    
     evento.value = dados.evento;
     competicao.value = dados.competicao;
     tempo.value = dados.tempo;
-
     document.querySelectorAll(".odds").forEach((o, i) => o.value = dados.odds[i] || "");
     atualizar();
-
     alert("📂 Dados carregados!");
   }
 
@@ -314,14 +282,13 @@
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const imgHeight = (canvas.height * pageWidth) / canvas.width;
-
     pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
+
     pdf.save(`Comparativo_Odds_${evento.value.replace(/\s+/g, "_")}.pdf`);
   }
 
   function resetar() {
     if (!confirm("Tem certeza que deseja limpar tudo?")) return;
-
     document.querySelectorAll(".odds").forEach(o => o.value = "");
     localStorage.removeItem("comparativoOdds");
     atualizar();
